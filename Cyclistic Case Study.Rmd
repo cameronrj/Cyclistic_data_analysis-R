@@ -1,0 +1,416 @@
+---
+title: 'Case Study: Analysing Cyclistic bike-sharing data to deteremine the use case differences between different user types to inform a new marketing campaign strategy'
+author: "Cameron Jones"
+date: '2022-07-07'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+<center>
+![](C:\Users\camer\Documents\Cyclistic_case_study\Cyclistic Logo.png){#id .class width=50% height=50%}
+</center>
+
+## Introduction
+In this case study, I am performing data analysis for Cyclistic, a bike-share company based in Chicago. Cyclisitc is a bike share company with over 5800 bikes and 690 docking stations. These bikes are used by both **casual** riders ( single-ride passes and full-day passes) and **membership** riders (annual memberships). Lyft Bikes and Scooters, LLC(owners of the Cyclisic scheme) record data from their service such as trip length, station locations, user types and bike type in order to optimise their business strategy and marketing campaigns.
+The company's executive team believes maximising the number of annual memberships is the most effective way to improve revenue. The goal is analyse how the casual and annual riders use the bike-share service differently, and from these insights, create actions that align the business goals with the recorded data and build marketing strategies around this.
+
+##### **Business Case:** 
+The goal of this project is to use the historical public data to build marketing strategies aimed at converting casual riders in membership riders. This will help meet the Director of Marketing's goal of developing a new campaign and initiative to promote the bike-share program. The data analysed in this study will then help the director of marketing get a new campaign approved by the Cyclistic executive team. In order to do this;
+* An evaluation on how casual and membership riders differ needs to be undertaken
+* The question of "why casual riders would probably buy annual memberships?" needs to be answered
+* Finally the digital media team can then analyse the most effective way to influence the casual riders.
+
+## Ask
+Following the business task above, the specific data analytics task is to: **Determine how annual members and casual riders use Cyclistic bikes differently.**
+
+**To answer this, the metrics I need to evaluate my data against are:** 
+
+* Number of rides 
+* Length of rides
+* User types on these rides
+* Statistical measures of rides such as mean, maximum and minimum
+* Evaluation of the above metrics against time frames such as day of the week, month of the year and time of day.
+
+**Finally, the stakeholders that are involved with the project are;**
+
+* The marketing director, Lily Moreno, who is responsible for the development of campaigns and initiatives to promote the bike-share program and has communicated the business goal to design marketing strategies aimed at converting casual riders into annual members.
+
+* Cyclistic marketing analytics team, the team of data analysts who are responsible for collecting, analyzing, and reporting data that helps guide Cyclistic marketing strategy who will be undertaking the other parts of the problem that need to be solved.
+
+* Cyclistic executive team, the team who ultimately approve the marketing projects.
+
+* Cyclistic customers who use the single trip, day pass and annual membership cyclistic scheme with over 5800 bikes and 692 stations (8% of which are riders who use accessible bikes)
+
+
+## Prepare
+The data used for this analysis was downloaded from a secure server owned by Lyft Bikes and Scooters, LLC, owners of divvy bikes, who collate and store the data, therefore it is directly **cited** from them. This means the data is is being taken from the **original** source whilst it remains un-processed and objective meaning it is un-bias.
+
+The data is continuously recorded by the company and then organised into monthly data sets. The data dates back to 2012, however for this analysis it has been filtered to the most **current** sets from the last 12 months to ensure the data size isn't too large and can be handled effectively.
+
+RStudio is being used for this analysis. Following the download of the data, an R environment is set up to enable analysis to be performed by completing the following;
+
+1. The working directory is set up using *setwd("...")
+```{r include = FALSE}
+setwd("C:\\Users\\camer\\Documents\\Cyclistic_case_study")
+```
+
+2. Libraries can then be set up to enable specific R functions to be used to work with the data.
+
+```{r message = FALSE}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(purrr)
+library(hms)
+library(scales)
+```
+
+3. Each data set can then then pulled into the working environment.
+
+```{r message = FALSE}
+#read 2021 data
+cyclistic_202105 <- read.csv('cyclistic/2021/202105-divvy-tripdata.csv')
+cyclistic_202106 <- read.csv('cyclistic/2021/202106-divvy-tripdata.csv')
+cyclistic_202107 <- read.csv('cyclistic/2021/202107-divvy-tripdata.csv')
+cyclistic_202108 <- read.csv('cyclistic/2021/202108-divvy-tripdata.csv')
+cyclistic_202109 <- read.csv('cyclistic/2021/202109-divvy-tripdata.csv')
+cyclistic_202110 <- read.csv('cyclistic/2021/202110-divvy-tripdata.csv')
+cyclistic_202111 <- read.csv('cyclistic/2021/202111-divvy-tripdata.csv')
+cyclistic_202112 <- read.csv('cyclistic/2021/202112-divvy-tripdata.csv')
+
+#read 2022 data
+cyclistic_202201 <- read.csv('cyclistic/2022/202201-divvy-tripdata.csv')
+cyclistic_202202 <- read.csv('cyclistic/2022/202202-divvy-tripdata.csv')
+cyclistic_202203 <- read.csv('cyclistic/2022/202203-divvy-tripdata.csv')
+cyclistic_202204 <- read.csv('cyclistic/2022/202204-divvy-tripdata.csv')
+cyclistic_202205 <- read.csv('cyclistic/2022/202205-divvy-tripdata.csv')
+
+```
+
+The properties of the data frames can then inspected using;
+```{r}
+str(cyclistic_202105)
+```
+
+Then the properties can be pulled into one list to enable a quick and effective compatability check to ensure they can be combined.
+```{r message = FALSE}
+#Check data matches in all tables by mapping variables in each table and their
+#data types
+
+dfs_to_compare <- list(cyclistic_202105, cyclistic_202106, cyclistic_202107,
+                       cyclistic_202108, cyclistic_202109, cyclistic_202110,
+                       cyclistic_202111, cyclistic_202112, cyclistic_202201,
+                       cyclistic_202202, cyclistic_202203, cyclistic_202204,
+                       cyclistic_202205)
+
+data_type_check <- map_dfr(dfs_to_compare,
+        ~map_chr(.,typeof)) 
+```
+
+```{r}
+head(data_type_check)
+```
+
+
+Inspecting each data set, each variable is formatted **consistently**. This allows us to combine each data frame into a single data frame that is easier to process.
+
+```{r include = FALSE}
+cy_trips <- bind_rows(cyclistic_202105, cyclistic_202106, cyclistic_202107,
+                      cyclistic_202108, cyclistic_202109, cyclistic_202110,
+                      cyclistic_202111, cyclistic_202112, cyclistic_202201,
+                      cyclistic_202202, cyclistic_202203, cyclistic_202204,
+                      cyclistic_202205)
+```
+
+
+However, inspecting the data set further, we see it is not entirely **comprehensive**. The below code shows **14%** of the station ID's are missing from the data. Fortunately, the analysis does not rely on these variables, however if further questions were needed to be answered to achieve the business goal (for example distance of trip using the service) then this missing data would have to be excluded/populated. The code bellow also checks for duplicated values by checking the number of unique primary keys (ride_id) against the number of table rows.
+
+```{r include = FALSE}
+#Remove unnecessary variables
+cy_trips <- cy_trips %>%
+  select(-c(start_lat, start_lng, end_lat, end_lng))
+```
+
+
+```{r message = FALSE}
+#Evaluate the integrity of observations in data frame
+number_of_blanks <- colSums(cy_trips == "")
+
+no_of_observations <- length(unique(cy_trips$ride_id))
+```
+
+```{r}
+#highlight missing data
+missing_start_id <- percent(number_of_blanks[[5]]/no_of_observations)
+missing_end_id <- percent(number_of_blanks[[6]]/no_of_observations)
+
+glimpse(missing_start_id)
+glimpse(missing_end_id)
+```
+
+
+## Process
+As the data is now prepared, we can process the data for analysis. The steps made to clean the data are documented below.
+
+#### Remove unnecessary variables from the table
+
+Variables that are not needed for the analysis are removed from the table to reduce the amount of stored and processed data.
+```{r eval=FALSE}
+cy_trips <- cy_trips %>%
+  select(-c(start_lat, start_lng, end_lat, end_lng))
+```
+
+#### Convert dates and times into a usable format
+
+The date and time variables for the start and end of the bike trips are currently stored as character data types. They need converting into a standard ymd-hms format to enable analysis to be undertaken.
+```{r message = FALSE}
+#Convert trip starts/ends to date time format using ymd_hms in lubridate package
+cy_trips$started_at <- ymd_hms(cy_trips$started_at)
+cy_trips$ended_at <- ymd_hms(cy_trips$ended_at)
+```
+
+#### Add additional columns to data frame
+
+Calculations can then be performed to create additional columns in the data frame needed to perform analysis that answers the business questions.
+
+```{r message = FALSE}
+#Create new column showing ride duration
+cy_trips$ride_length <- difftime(cy_trips$ended_at,cy_trips$started_at)
+cy_trips$ride_length <- as_hms(cy_trips$ride_length)
+
+#Create new column containing day of the week of trip
+cy_trips$day <- wday(cy_trips$started_at, label = TRUE)
+
+#Add additional columns to provide grounds for further grouping of data
+cy_trips$date <- as.Date(cy_trips$started_at) #The default format is yyyy-mm-dd
+cy_trips$week <- format(as.Date(cy_trips$date), "%W")
+cy_trips$month <- format(as.Date(cy_trips$date), "%m")
+
+```
+
+#### Analyse the new data frame
+
+The new data frame needs to be analysed to confirm data is as expected (e.g. positive trip durations).
+
+```{r}
+#Analyse new dataframe
+summary(cy_trips)
+mean(cy_trips$ride_length)
+min(cy_trips$ride_length)
+max(cy_trips$ride_length)
+```
+
+The summary of the data frame shows that the table needs to be filtered to exclude data presenting as negative trip durations and trips over 24hr trips. These observations should be communicated back to the data recording team in order to re-assess the recording process where these errors occurred to prevent from happening again.
+
+```{r}
+#Highlight negative trip lengths
+negative_length <- filter(cy_trips, ride_length < 0)
+
+#As we a not sure why the negative trip length outliers have occurred,
+#nor the long trip length, we filter the data to exclude these observations
+cy_trips <- cy_trips[!(cy_trips$ride_length <1 | cy_trips$ride_length > 86400),]
+nrow(cy_trips)
+#There are 6386861 trips that lasted between  and 1s and 24hr
+
+```
+
+
+## Analyse
+After the data has been processed, it can be analysed to find any relationships, trends or unexpected results.
+
+Firstly, descriptive analysis can be undertaken on the data. This includes;
+
+* Finding the mean, median, min and max ride lengths
+```{r}
+#Descriptive analysis on ride_length
+mean(cy_trips$ride_length)
+median(cy_trips$ride_length)
+min(cy_trips$ride_length)
+max(cy_trips$ride_length)
+
+```
+
+* Finding the most popular days for using the service
+```{r}
+#Find most common day of week for trips
+count(cy_trips,day)
+
+```
+
+* Comparing the statistical measures for ride durations between each user group.
+
+```{r}
+#Compare casual vs member rides
+aggregate(cy_trips$ride_length ~ cy_trips$member_casual, FUN = mean) #compares mean trip duration
+aggregate(cy_trips$ride_length ~ cy_trips$member_casual, FUN = median) #compares median trip duration
+aggregate(cy_trips$ride_length ~ cy_trips$member_casual, FUN = max) #compares max trip duration
+aggregate(cy_trips$ride_length ~ cy_trips$member_casual, FUN = min) #compares min trip duration
+```
+
+
+## Visualise
+
+Following the descriptive analysis, we can see the trends and relationships in the data by plotting several visuals.
+
+#### Firstly, we can see the overall makeup of the user types over the last 12 months using a pie chart.
+
+*This shows that there are more casual users for this service and echos the thoughts of the director of marketing that there is room to convert more casual users into members.*
+
+```{r echo = FALSE, message = FALSE}
+cy_trips%>%
+  group_by(member_casual)%>%
+  summarise(membership_trips = (n()))%>%
+  mutate(total_trips = sum(membership_trips))%>%
+  mutate(percent_total = membership_trips/total_trips*100)%>%
+  ggplot(aes(x = "", y = percent_total, fill = member_casual)) +
+  geom_col(color = "#46465e", size = 0.5)+
+  scale_fill_hue(c = 40)+
+  coord_polar("y", start = 0)+
+  labs(title = "Overview of Total Trips", subtitle = "Makeup of riders using cycle service",
+       caption = (paste0("Summary of trips from ", min(cy_trips$started_at), " to ", max(cy_trips$ended_at))))+
+  labs(fill='Type of Rider') + 
+  geom_text(aes(vjust=-8, label = percent(membership_trips/total_trips)), size=2.5
+            , face = "bold") +
+  theme(panel.background = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),  
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 19, color = "black"),
+        plot.subtitle = element_text(hjust = 0.4, face = "bold", size = 13, color = "#46465e"),
+        plot.caption = element_text(hjust = 8, size = 10, color = "#46465e"),
+        legend.title = element_text(size = 12, face = "bold", color = "#46465e"),
+        legend.text = element_text(size = 10, color = "#46465e"))
+
+```
+
+#### Secondly, we can visualise how many trips were taken per user type of the course of the year.
+
+*This visualisation shows that for both user types, more trips are taken towards the summer months of the year and drop off to a minimum in the winter. Member use of the bike service is higher than causal for 9/12 months of the year, however casual usage is higher in the summer months. Finally, there is a peak usage for both user types in May.*
+
+```{r echo = FALSE, message = FALSE}
+
+#Number of trips for each group
+cy_trips%>%
+  group_by(month, member_casual)%>%
+  summarise(number_of_trips = n())%>%
+  arrange(member_casual) %>%
+  ggplot(aes(x = month, y = number_of_trips, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  scale_fill_hue(c = 40)+
+  labs(
+    x = "Month",
+    y = "Number of Trips",
+    title = "Number of trips taken by different user types",
+    subtitle = "Monthly comparison of the number of trips taken for casual vs member user types",
+    caption = (paste0("Summary of trips from ", min(cy_trips$started_at),
+                      " to ", max(cy_trips$ended_at))),
+    fill = "User Type")
+```
+
+
+#### We can then break this down into days of the week
+
+*This shows that, on average, the casual users use the service more often and their usage varies more over the course of a week. Casual users are more active on the weekend whereas members use the service constantly through the week and less so on the weekend.*
+
+```{r echo = FALSE, message = FALSE}
+#Number of trips for each group by day
+cy_trips%>%
+  group_by(day, member_casual)%>%
+  summarise(number_of_trips = n())%>%
+  arrange(member_casual, day) %>%
+  ggplot(aes(x = day, y = number_of_trips, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  scale_fill_hue(c = 40)+
+  labs(
+    x = "Day of the Week",
+    y = "Number of Trips",
+    title = "Number of trips taken by different user types",
+    subtitle = "Daily comparison of the number of trips taken for casual vs member user types",
+    caption = (paste0("Summary of trips from ", min(cy_trips$started_at),
+                      " to ", max(cy_trips$ended_at))),
+    fill = "User Type")
+```
+
+
+#### We can then compare the average trip length between the two user type.
+
+*This chart shows that the average trip duration for casual users is almost double that of a member.*
+
+```{r echo = FALSE, message = FALSE}
+#Average trip length for each group
+cy_trips%>%
+  group_by(member_casual)%>%
+  summarise(mean_trip_duration = mean (ride_length))%>%
+  ggplot(aes(x = member_casual, y = mean_trip_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  scale_fill_hue(c = 40)+
+  labs(
+    x = "User Type",
+    y = "Average Trip Duration (s)",
+    title = "Average trip duration for different user types",
+    subtitle = "Overall comparison of trip durations for casual vs member user types",
+    caption = (paste0("Summary of trips from ", min(cy_trips$started_at),
+                      " to ", max(cy_trips$ended_at))))+
+  theme(legend.position = "none")
+```
+
+
+#### Finally, we can show how the average trip length for each user varies through the course of a week.
+
+*This last chart again highlights that casual user's average trip durations are consistently higher than members throughout the week. Interestingly, it highlights that both members and casual users trips are longer on the weekend (Sat and Sun) than in the week.*
+
+```{r echo = FALSE, message = FALSE}
+#Average trip length for each group by day
+cy_trips%>%
+  group_by(day, member_casual)%>%
+  summarise(mean_trip_duration = mean (ride_length))%>%
+  arrange(member_casual, day) %>%
+  ggplot(aes(x = day, y = mean_trip_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  scale_fill_hue(c = 40)+
+  labs(
+    x = "Day of the Week",
+    y = "Average Trip Duration (s)",
+    title = "Average trip duration for different user types",
+    subtitle = "Daily comparison of trip durations for casual vs member user types",
+    caption = (paste0("Summary of trips from ", min(cy_trips$started_at),
+                      " to ", max(cy_trips$ended_at))),
+    fill = "User Type")
+```
+
+## Act/Conclusion
+
+After completing the analysis, there are several conclusions that can be made from the data. These conclusions can be communicated to the marketing in order to create action points to address the business' goal of converting casual riders into annual members. The analysis has provided the below data driven insights on how **casual riders and annual members use Cyclistic bikes differently;** 
+
+**1. Casual riders prefer to take longer trips averaging more than twice from members.** 
+
+The analysis shows how casual riders take longer duration trips, this knowledge could be used to market existing memberships or new memberships specifically target at long duration trips to convert casual user into members.
+
+A rewards program based on trip duration could be introduced. If a minimum trip duration was met, a casual user could receive a special short term offer on a membership. These users could then be targeted so they are retained as normal members.
+
+
+**2. Casual users have a peak service use on Saturday and Sunday.**
+
+A weekend membership option could be introduced for those users who are more active on weekends. 
+
+**3. Casual users use the service more frequently in summer months**
+
+A summer mebership coud be offered to generate member revenue un the months that casual users use the service most.
+
+## Further Analysis
+
+Further analysis could be conducted to create more targeted/effective marketing campaigns. This analysis could include gathering GPS data from the bikes to understand how casual vs member cycle routes vary and how the distance of the trips vary.
+
+Data on the use of the bikes could also be recorded. For example, understanding if the users are tourists or residents. This would help break the data down into more detailed insights such as understanding why peak use occurs, is it an effect of tourism or local residents using the service more often. This data would then help determine who to aim membership offers at and whether it or not it would generate effective returns.
